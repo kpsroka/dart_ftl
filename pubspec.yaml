@@ -1,4 +1,4 @@
-name: dart_ftl
+name: ftl
 description: Dart parser for the Project Fluent FTL file format.
 version: 0.0.1
 author: Krzysztof Sroka <kpsroka@kpsroka.dev>
