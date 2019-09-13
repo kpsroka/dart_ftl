@@ -12,36 +12,37 @@
 
 library ftl;
 
+import 'package:ftl/src/ast.dart';
 import 'package:petitparser/petitparser.dart';
 
 Parser _setUpParser() {
-  Parser _line_end = (string('\u000D\u000A') | string('\u000A') | endOfInput()).flatten();
-  Parser _blank_inline = char('\u0020').plus().flatten();
-  Parser _blank_block = (_blank_inline & _line_end).plus().flatten();
-  Parser _blank = (_blank_inline | _line_end).plus().flatten();
+  Parser<String> _line_end = (string('\u000D\u000A') | string('\u000A') | endOfInput()).flatten();
+  Parser<String> _blank_inline = char('\u0020').plus().flatten();
+  Parser<String> _blank_block = (_blank_inline & _line_end).plus().flatten();
+  Parser<String> _blank = (_blank_inline | _line_end).plus().flatten();
 
-  Parser _junk_line = _line_end.not().star() & _line_end;
-  Parser _junk = (_junk_line & ((letter() | char('#') | char('-')).not() & _junk_line).star()).flatten();
+  Parser<String> _junk_line = (_line_end.not().star() & _line_end).flatten();
+  Parser<FtlJunk> _junk = (_junk_line & ((letter() | char('#') | char('-')).not() & _junk_line).star()).flatten().map((String content) => FtlJunk(content));
 
-  Parser _special_text_char = char('{') | char('}');
-  Parser _text_char = (_special_text_char.or(_line_end)).not() & any();
-  Parser _indented_char = (char('.').or(char('*')).or(char('['))).not() & _text_char;
-  Parser _special_quoted_char = (char('"') | char('\\'));
-  Parser _special_escape = (char('\\') & _special_quoted_char).flatten();
-  Parser _unicode_escape_4 = (string('\\u') & word().times(4)).flatten();
-  Parser _unicode_escape_6 = (string('\\U') & word().times(6)).flatten();
-  Parser _unicode_escape = _unicode_escape_4 | _unicode_escape_6;
-  Parser _quoted_char = _text_char | _special_escape | _unicode_escape;
+  Parser<String> _special_text_char = char('{') | char('}');
+  Parser<String> _text_char = ((_special_text_char.or(_line_end)).not() & any()).flatten();
+  Parser<String> _indented_char = ((char('.').or(char('*')).or(char('['))).not() & _text_char).flatten();
+  Parser<String> _special_quoted_char = (char('"') | char('\\'));
+  Parser<String> _special_escape = (char('\\') & _special_quoted_char).flatten();
+  Parser<String> _unicode_escape_4 = (string('\\u') & word().times(4)).flatten();
+  Parser<String> _unicode_escape_6 = (string('\\U') & word().times(6)).flatten();
+  Parser<String> _unicode_escape = _unicode_escape_4 | _unicode_escape_6;
+  Parser<String> _quoted_char = _text_char | _special_escape | _unicode_escape;
 
-  Parser _inline_text = _text_char.plus().flatten();
-  Parser _block_text = (_blank_block & _blank_inline & _indented_char & _inline_text.optional()).flatten();
+  Parser<String> _inline_text = _text_char.plus().flatten();
+  Parser<String> _block_text = (_blank_block & _blank_inline & _indented_char & _inline_text.optional()).flatten();
 
-  Parser _comment_char = _line_end.not() & any();
+  Parser<String> _comment_char = (_line_end.not() & any()).flatten();
   Parser _comment_line = (string('###') | string('##') | string('#')) & (char(' ') & _comment_char.star()).optional([]) & _line_end;
 
-  Parser _identifier = (letter() & (word() | char('_') | char('-')).star()).flatten();
-  Parser _number_literal = ((char('-').optional('')) & digit().plus() & (char('.') & digit().plus()).optional([''])).flatten();
-  Parser _string_literal = (char('"') & _quoted_char.star() & char('"')).flatten();
+  Parser<FtlIdentifier> _identifier = (letter() & (word() | char('_') | char('-')).star()).flatten().map((String content) => FtlIdentifier(content));
+  Parser<FtlNumberLiteral> _number_literal = ((char('-').optional('')) & digit().plus() & (char('.') & digit().plus()).optional([''])).flatten().map((String content) => FtlNumberLiteral(content));
+  Parser<FtlStringLiteral> _string_literal = (char('"') & _quoted_char.star() & char('"')).pick<String>(1).map((String content)=> FtlStringLiteral(content));
 
   SettableParser _select_expression = undefined();
   SettableParser _inline_expression = undefined();
@@ -63,7 +64,9 @@ Parser _setUpParser() {
   Parser _function_reference = _identifier & _call_arguments;
   Parser _variable_reference = char('\$') & _identifier;
 
-  Parser _variant_key = char('[') & _blank.optional('') & (_number_literal | _identifier) & _blank.optional('') & char(']');
+  Parser<FtlVariantKey> _variant_key = (char('[') & _blank.optional('') & (_number_literal | _identifier) & _blank.optional('') & char(']')).pick(3).map(
+    (dynamic key) => FtlVariantKey(key)
+  );
   Parser _default_variant = (_line_end & _blank.optional('') & char('*') & _variant_key & _blank_inline.optional('') & _pattern).flatten();
   Parser _variant = (_line_end & _blank.optional('') & _variant_key & _blank_inline.optional('') & _pattern).flatten();
   Parser _variant_list = (_variant.star() & _default_variant & _variant.star() & _line_end).flatten();
