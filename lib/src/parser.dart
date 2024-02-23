@@ -1,4 +1,4 @@
-//  Copyright 2019 Krzysztof Sroka
+//  Copyright 2019-2024 Krzysztof Krasiński-Sroka
 
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ Parser<FtlResource> _setUpParser() {
   Parser<FtlString> blankInline =
       char('\u0020').plus().flatten().map(FtlString.new);
   Parser<FtlBlankBlock> blankBlock =
-      (blankInline & lineEnd).plus().flatten().map(FtlString.new);
+      (blankInline & lineEnd).plus().flatten().map(FtlBlankBlock.new);
   Parser<FtlString> blank =
       (blankInline | lineEnd).plus().flatten().map(FtlString.new);
 
@@ -33,7 +33,7 @@ Parser<FtlResource> _setUpParser() {
   Parser<FtlJunk> junk =
       (junkLine & ((letter() | char('#') | char('-')).not() & junkLine).star())
           .flatten()
-          .map(FtlString.new);
+          .map(FtlJunk.new);
 
   Parser<FtlString> specialTextChar =
       (char('{') | char('}')).flatten().map(FtlString.new);
@@ -57,11 +57,11 @@ Parser<FtlResource> _setUpParser() {
   Parser<FtlString> quotedChar =
       (textChar | specialEscape | unicodeEscape).map((dynamic raw) => raw);
 
-  Parser<FtlText> inlineText = textChar.plus().flatten().map(FtlString.new);
+  Parser<FtlText> inlineText = textChar.plus().flatten().map(FtlText.new);
   Parser<FtlText> blockText =
       (blankBlock & blankInline & indentedChar & inlineText.optional())
           .flatten()
-          .map(FtlString.new);
+          .map(FtlText.new);
 
   Parser<FtlString> commentChar =
       (lineEnd.not() & any()).flatten().map(FtlString.new);
@@ -70,12 +70,12 @@ Parser<FtlResource> _setUpParser() {
               (char(' ') & commentChar.star()).optional() &
               lineEnd)
           .flatten()
-          .map(FtlString.new);
+          .map(FtlCommentLine.new);
 
   Parser<FtlIdentifier> identifier =
       (letter() & (word() | char('_') | char('-')).star())
           .flatten()
-          .map(FtlString.new);
+          .map(FtlIdentifier.new);
   Parser<FtlNumberLiteral> numberLiteral = ((char('-').optional()) &
           digit().plus() &
           (char('.') & digit().plus()).optional())
@@ -85,7 +85,7 @@ Parser<FtlResource> _setUpParser() {
       (char('"') & quotedChar.star() & char('"'))
           .pick(1)
           .cast<String>()
-          .map(FtlString.new);
+          .map(FtlStringLiteral.new);
 
   SettableParser<FtlSelectExpression> selectExpression = undefined();
   SettableParser<FtlInlineExpression> inlineExpression = undefined();
@@ -117,11 +117,11 @@ Parser<FtlResource> _setUpParser() {
           blankInline.optional() &
           pattern)
       .map((List<dynamic> raw) {
-        if (raw[3] == null) {
-          debugger();
-        }
-        return FtlAttribute(identifier: raw[3], pattern: raw[7]);
-      });
+    if (raw[3] == null) {
+      debugger();
+    }
+    return FtlAttribute(identifier: raw[3], pattern: raw[7]);
+  });
 
   Parser<FtlNamedArgument> namedArgument = (identifier &
           (blank.optional() & char(':') & blank.optional()).flatten() &
@@ -206,24 +206,21 @@ Parser<FtlResource> _setUpParser() {
     assert(raw[2] is List && raw[2].isNotEmpty);
     if (raw[2][0] is FtlPattern) {
       return FtlMessage(
-          identifier: raw[0],
-          pattern: raw[2][0],
-          attributes: List.castFrom((raw[2]).sublist(1)));
+        identifier: raw[0],
+        pattern: raw[2][0],
+        attributes: List.castFrom((raw[2]).sublist(1)),
+      );
     } else {
       return FtlMessage(
-          identifier: raw[0], attributes: raw[2] as List<FtlAttribute>);
+        identifier: raw[0],
+        attributes: raw[2].cast as List<FtlAttribute>,
+      );
     }
   });
 
   Parser<FtlEntry> entry =
       ((message & lineEnd).pick(0) | (term & lineEnd).pick(0) | commentLine)
-          .map((raw) {
-    if (raw is FtlMessage) return FtlEntry.forMessage(raw);
-    if (raw is FtlTerm) return FtlEntry.forTerm(raw);
-    if (raw is FtlCommentLine) return FtlEntry.forCommentLine(raw);
-    assert(false, 'Unsupported type ${raw.runtimeType}: $raw');
-    throw Exception('No fun');
-  });
+          .cast<FtlEntry>();
 
   selectExpression.set((inlineExpression &
           (blank.optional() & string('->') & blankInline.optional()).flatten() &

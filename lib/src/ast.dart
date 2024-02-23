@@ -1,4 +1,4 @@
-//  Copyright 2019 Krzysztof Sroka
+//  Copyright 2019-2024 Krzysztof Krasiński-Sroka
 
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -10,25 +10,13 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-interface class FtlPatternElementCandidate {}
+sealed class FtlVariantKeyCandidate {}
 
-interface class FtlResourceCandidate {}
+sealed class FtlInlinePlaceableCandidate {}
 
-interface class FtlJunk implements FtlResourceCandidate {}
+sealed class FtlInlineExpressionCandidate {}
 
-interface class FtlBlankBlock implements FtlResourceCandidate {}
-
-interface class FtlCommentLine {}
-
-interface class FtlVariantKeyCandidate {}
-
-final class FtlIdentifier implements FtlVariantKeyCandidate {}
-
-interface class FtlInlinePlaceableCandidate {}
-
-interface class FtlInlineExpressionCandidate {}
-
-interface class FtlArgumentCandidate {}
+sealed class FtlArgumentCandidate {}
 
 final class FtlInlineExpression
     implements FtlInlinePlaceableCandidate, FtlArgumentCandidate {
@@ -37,24 +25,46 @@ final class FtlInlineExpression
   FtlInlineExpression({required this.expression});
 }
 
-interface class FtlLiteral {}
-
-interface class FtlStringLiteral
-    implements FtlLiteral, FtlInlineExpressionCandidate {}
-
-interface class FtlText implements FtlPatternElementCandidate {}
-
-final class FtlString
-    implements
-        FtlJunk,
-        FtlIdentifier,
-        FtlStringLiteral,
-        FtlText,
-        FtlCommentLine,
-        FtlBlankBlock {
+final class FtlString {
   final String content;
 
   FtlString(this.content);
+}
+
+sealed class FtlLiteral {}
+
+final class FtlStringLiteral extends FtlString
+    implements FtlLiteral, FtlInlineExpressionCandidate {
+  FtlStringLiteral(super.content);
+}
+
+final class FtlIdentifier extends FtlString
+    implements FtlVariantKeyCandidate {
+  FtlIdentifier(super.content);
+}
+
+sealed class FtlResourceCandidate {}
+
+final class FtlBlankBlock extends FtlString
+    implements FtlResourceCandidate {
+  FtlBlankBlock(super.content);
+}
+
+final class FtlJunk extends FtlString implements FtlResourceCandidate {
+  FtlJunk(super.content);
+}
+
+sealed class FtlPatternElementCandidate {}
+
+final class FtlText extends FtlString
+    implements FtlPatternElementCandidate {
+  FtlText(super.content);
+}
+
+sealed class FtlEntry implements FtlResourceCandidate {}
+
+final class FtlCommentLine extends FtlString implements FtlEntry {
+  FtlCommentLine(super.content);
 }
 
 final class FtlNumberLiteral extends FtlString
@@ -74,7 +84,7 @@ final class FtlAttribute {
   FtlAttribute({required this.identifier, required this.pattern});
 }
 
-class FtlAttributeAccessor {
+final class FtlAttributeAccessor {
   final FtlIdentifier identifier;
 
   FtlAttributeAccessor({required this.identifier});
@@ -106,7 +116,7 @@ final class FtlVariant {
   FtlVariant({required this.variantKey, required this.pattern});
 }
 
-class FtlDefaultVariant {
+final class FtlDefaultVariant {
   final FtlVariantKey variantKey;
   final FtlPattern pattern;
 
@@ -201,7 +211,7 @@ final class FtlVariableReference implements FtlInlineExpressionCandidate {
   FtlVariableReference({required this.identifier});
 }
 
-final class FtlTerm {
+final class FtlTerm implements FtlEntry {
   final FtlIdentifier identifier;
   final FtlPattern pattern;
   final List<FtlAttribute> attributes;
@@ -213,7 +223,7 @@ final class FtlTerm {
   });
 }
 
-final class FtlMessage {
+final class FtlMessage implements FtlEntry {
   final FtlIdentifier identifier;
   final FtlPattern? pattern;
   final List<FtlAttribute> attributes;
@@ -223,23 +233,6 @@ final class FtlMessage {
     this.pattern,
     required this.attributes,
   });
-}
-
-final class FtlEntry implements FtlResourceCandidate {
-  final FtlMessage? message;
-  final FtlTerm? term;
-  final FtlCommentLine? commentLine;
-
-  FtlEntry({
-    this.message,
-    this.term,
-    this.commentLine,
-  });
-
-  factory FtlEntry.forMessage(FtlMessage message) => FtlEntry(message: message);
-  factory FtlEntry.forTerm(FtlTerm term) => FtlEntry(term: term);
-  factory FtlEntry.forCommentLine(FtlCommentLine commentLine) =>
-      FtlEntry(commentLine: commentLine);
 }
 
 final class FtlResource {
