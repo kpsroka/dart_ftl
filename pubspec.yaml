@@ -1,15 +1,15 @@
 name: ftl
 description: Dart parser for the Project Fluent FTL file format.
-version: 1.0.0-alpha.1
-author: Krzysztof Sroka <kpsroka@kpsroka.dev>
+version: 2.0.0-alpha.1
 homepage: https://github.com/kpsroka/dart_ftl
 repository: https://github.com/kpsroka/dart_ftl
 
 environment:
-  sdk: ">=2.3.0 <3.0.0"
+  sdk: ^3.3.0
 
 dependencies:
-  petitparser: ^2.4.0
+  petitparser: ^6.0.2
 
 dev_dependencies:
-  test: ^1.9.4
+  lints: ^3.0.0
+  test: ^1.24.0
