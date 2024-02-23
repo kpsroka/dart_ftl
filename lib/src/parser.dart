@@ -12,70 +12,70 @@
 
 library ftl;
 
+import 'dart:developer';
+
 import 'package:petitparser/petitparser.dart';
 
 import './ast.dart';
 
 Parser<FtlResource> _setUpParser() {
-  Parser<FtlString> lineEnd = (string('\u000D\u000A') | string('\u000A'))
-      .flatten()
-      .map(FtlString.fromString);
+  Parser<FtlString> lineEnd =
+      (string('\u000D\u000A') | string('\u000A')).flatten().map(FtlString.new);
   Parser<FtlString> blankInline =
-      char('\u0020').plus().flatten().map(FtlString.fromString);
+      char('\u0020').plus().flatten().map(FtlString.new);
   Parser<FtlBlankBlock> blankBlock =
-      (blankInline & lineEnd).plus().flatten().map(FtlString.fromString);
+      (blankInline & lineEnd).plus().flatten().map(FtlString.new);
   Parser<FtlString> blank =
-      (blankInline | lineEnd).plus().flatten().map(FtlString.fromString);
+      (blankInline | lineEnd).plus().flatten().map(FtlString.new);
 
   Parser<FtlString> junkLine =
-      (lineEnd.neg().star() & lineEnd).flatten().map(FtlString.fromString);
+      (lineEnd.neg().star() & lineEnd).flatten().map(FtlString.new);
   Parser<FtlJunk> junk =
       (junkLine & ((letter() | char('#') | char('-')).not() & junkLine).star())
           .flatten()
-          .map(FtlString.fromString);
+          .map(FtlString.new);
 
   Parser<FtlString> specialTextChar =
-      (char('{') | char('}')).flatten().map(FtlString.fromString);
+      (char('{') | char('}')).flatten().map(FtlString.new);
   Parser<FtlString> textChar = ((specialTextChar.or(lineEnd)).not() & any())
       .flatten()
-      .map(FtlString.fromString);
+      .map(FtlString.new);
   Parser<FtlString> indentedChar =
       ((char('.').or(char('*')).or(char('['))).not() & textChar)
           .flatten()
-          .map(FtlString.fromString);
+          .map(FtlString.new);
   Parser<FtlString> specialQuotedChar =
-      (char('"') | char('\\')).flatten().map(FtlString.fromString);
+      (char('"') | char('\\')).flatten().map(FtlString.new);
   Parser<FtlString> specialEscape =
-      (char('\\') & specialQuotedChar).flatten().map(FtlString.fromString);
+      (char('\\') & specialQuotedChar).flatten().map(FtlString.new);
   Parser<FtlString> unicodeEscape4 =
-      (string('\\u') & word().times(4)).flatten().map(FtlString.fromString);
+      (string('\\u') & word().times(4)).flatten().map(FtlString.new);
   Parser<FtlString> unicodeEscape6 =
-      (string('\\U') & word().times(6)).flatten().map(FtlString.fromString);
+      (string('\\U') & word().times(6)).flatten().map(FtlString.new);
   Parser<FtlString> unicodeEscape =
       (unicodeEscape4 | unicodeEscape6).map((dynamic raw) => raw);
   Parser<FtlString> quotedChar =
       (textChar | specialEscape | unicodeEscape).map((dynamic raw) => raw);
 
-  Parser<FtlText> inlineText =
-      textChar.plus().flatten().map(FtlString.fromString);
+  Parser<FtlText> inlineText = textChar.plus().flatten().map(FtlString.new);
   Parser<FtlText> blockText =
       (blankBlock & blankInline & indentedChar & inlineText.optional())
           .flatten()
-          .map(FtlString.fromString);
+          .map(FtlString.new);
 
   Parser<FtlString> commentChar =
-      (lineEnd.not() & any()).flatten().map(FtlString.fromString);
+      (lineEnd.not() & any()).flatten().map(FtlString.new);
   Parser<FtlCommentLine> commentLine =
       ((string('###') | string('##') | string('#')) &
               (char(' ') & commentChar.star()).optional() &
               lineEnd)
           .flatten()
-          .map(FtlString.fromString);
+          .map(FtlString.new);
 
   Parser<FtlIdentifier> identifier =
       (letter() & (word() | char('_') | char('-')).star())
           .flatten()
-          .map(FtlString.fromString);
+          .map(FtlString.new);
   Parser<FtlNumberLiteral> numberLiteral = ((char('-').optional()) &
           digit().plus() &
           (char('.') & digit().plus()).optional())
@@ -85,7 +85,7 @@ Parser<FtlResource> _setUpParser() {
       (char('"') & quotedChar.star() & char('"'))
           .pick(1)
           .cast<String>()
-          .map(FtlString.fromString);
+          .map(FtlString.new);
 
   SettableParser<FtlSelectExpression> selectExpression = undefined();
   SettableParser<FtlInlineExpression> inlineExpression = undefined();
@@ -98,7 +98,9 @@ Parser<FtlResource> _setUpParser() {
       .pick(2)
       .map((raw) => FtlInlinePlaceable(placeable: raw));
   Parser<FtlBlockPlaceable> blockPlaceable =
-      (blankBlock & blankInline.optional() & inlinePlaceable).pick(2).cast();
+      (blankBlock & blankInline.optional() & inlinePlaceable)
+          .pick(2)
+          .cast<FtlBlockPlaceable>();
 
   Parser<FtlPatternElement> patternElement =
       (inlineText | blockText | inlinePlaceable | blockPlaceable)
@@ -114,8 +116,12 @@ Parser<FtlResource> _setUpParser() {
           char('=') &
           blankInline.optional() &
           pattern)
-      .map((List<dynamic> raw) =>
-          FtlAttribute(identifier: raw[3], pattern: raw[7]));
+      .map((List<dynamic> raw) {
+        if (raw[3] == null) {
+          debugger();
+        }
+        return FtlAttribute(identifier: raw[3], pattern: raw[7]);
+      });
 
   Parser<FtlNamedArgument> namedArgument = (identifier &
           (blank.optional() & char(':') & blank.optional()).flatten() &
@@ -143,10 +149,10 @@ Parser<FtlResource> _setUpParser() {
           identifier &
           attributeAccessor.optional() &
           callArguments.optional())
-      .map((List<dynamic> raw) => FtlTermReference(
-          identifier: raw[1],
-          attributeAccessor: raw[2],
-          callArguments: raw[3]));
+      .map(
+    (List<dynamic> raw) => FtlTermReference(
+        identifier: raw[1], attributeAccessor: raw[2], callArguments: raw[3]),
+  );
   Parser<FtlMessageReference> messageReference =
       (identifier & attributeAccessor.optional()).map((List<dynamic> raw) =>
           FtlMessageReference(identifier: raw[0], attributeAccessor: raw[1]));
@@ -163,7 +169,8 @@ Parser<FtlResource> _setUpParser() {
           (numberLiteral | identifier) &
           blank.optional() &
           char(']'))
-      .pick(3)
+      .pick(2)
+      .cast<FtlVariantKeyCandidate>()
       .map((dynamic key) => FtlVariantKey(key: key));
   Parser<FtlDefaultVariant> defaultVariant = (lineEnd &
           blank.optional() &

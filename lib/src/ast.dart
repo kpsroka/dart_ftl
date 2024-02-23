@@ -10,7 +10,41 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-class FtlString
+interface class FtlPatternElementCandidate {}
+
+interface class FtlResourceCandidate {}
+
+interface class FtlJunk implements FtlResourceCandidate {}
+
+interface class FtlBlankBlock implements FtlResourceCandidate {}
+
+interface class FtlCommentLine {}
+
+interface class FtlVariantKeyCandidate {}
+
+final class FtlIdentifier implements FtlVariantKeyCandidate {}
+
+interface class FtlInlinePlaceableCandidate {}
+
+interface class FtlInlineExpressionCandidate {}
+
+interface class FtlArgumentCandidate {}
+
+final class FtlInlineExpression
+    implements FtlInlinePlaceableCandidate, FtlArgumentCandidate {
+  final FtlInlineExpressionCandidate expression;
+
+  FtlInlineExpression({required this.expression});
+}
+
+interface class FtlLiteral {}
+
+interface class FtlStringLiteral
+    implements FtlLiteral, FtlInlineExpressionCandidate {}
+
+interface class FtlText implements FtlPatternElementCandidate {}
+
+final class FtlString
     implements
         FtlJunk,
         FtlIdentifier,
@@ -20,35 +54,20 @@ class FtlString
         FtlBlankBlock {
   final String content;
 
-  FtlString._(this.content);
-
-  static FtlString fromString(String content) {
-    return FtlString._(content);
-  }
+  FtlString(this.content);
 }
 
-class FtlText implements _FtlPatternElementCandidate {}
-
-class FtlJunk implements FtlResourceCandidate {}
-
-class FtlBlankBlock implements FtlResourceCandidate {}
-
-class FtlCommentLine {}
-
-class FtlIdentifier implements _FtlVariantKeyCandidate {}
-
-class FtlStringLiteral implements _FtlInlineExpressionCandidate {}
-
-class FtlNumberLiteral extends FtlString
-    implements _FtlInlineExpressionCandidate, _FtlVariantKeyCandidate {
+final class FtlNumberLiteral extends FtlString
+    implements
+        FtlLiteral,
+        FtlInlineExpressionCandidate,
+        FtlVariantKeyCandidate {
   final num value;
 
-  FtlNumberLiteral(super.content)
-      : value = num.parse(content),
-        super._();
+  FtlNumberLiteral(super.content) : value = num.parse(content);
 }
 
-class FtlAttribute {
+final class FtlAttribute {
   final FtlIdentifier identifier;
   final FtlPattern pattern;
 
@@ -61,33 +80,26 @@ class FtlAttributeAccessor {
   FtlAttributeAccessor({required this.identifier});
 }
 
-class FtlNamedArgument implements _FtlArgumentCandidate {
+final class FtlNamedArgument implements FtlArgumentCandidate {
   final FtlIdentifier identifier;
+  final FtlLiteral literal;
 
-  // Either FtlNumberLiteral or FtlStringLiteral.
-  final dynamic literal;
-
-  FtlNamedArgument(this.identifier, this.literal)
-      : assert(literal is FtlNumberLiteral || literal is FtlStringLiteral);
+  FtlNamedArgument(this.identifier, this.literal);
 }
 
-class _FtlArgumentCandidate {}
-
-class FtlArgument {
-  final _FtlArgumentCandidate argument;
+final class FtlArgument {
+  final FtlArgumentCandidate argument;
 
   FtlArgument({required this.argument});
 }
 
-class _FtlVariantKeyCandidate {}
-
-class FtlVariantKey {
-  final _FtlVariantKeyCandidate key;
+final class FtlVariantKey {
+  final FtlVariantKeyCandidate key;
 
   FtlVariantKey({required this.key});
 }
 
-class FtlVariant {
+final class FtlVariant {
   final FtlVariantKey variantKey;
   final FtlPattern pattern;
 
@@ -101,125 +113,128 @@ class FtlDefaultVariant {
   FtlDefaultVariant({required this.variantKey, required this.pattern});
 }
 
-class FtlVariantList {
+final class FtlVariantList {
   final FtlDefaultVariant defaultVariant;
   final List<FtlVariant> variants;
 
   FtlVariantList({required this.defaultVariant, required this.variants});
 }
 
-class _FtlInlinePlaceableCandidate {}
-
-class FtlInlinePlaceable
-    implements _FtlPatternElementCandidate, _FtlInlineExpressionCandidate {
-  final _FtlInlinePlaceableCandidate placeable;
+final class FtlInlinePlaceable
+    implements FtlPatternElementCandidate, FtlInlineExpressionCandidate {
+  final FtlInlinePlaceableCandidate placeable;
 
   FtlInlinePlaceable({required this.placeable});
 }
 
-class FtlBlockPlaceable implements _FtlInlinePlaceableCandidate {}
+final class FtlBlockPlaceable implements FtlInlinePlaceableCandidate {}
 
-class _FtlInlineExpressionCandidate {}
-
-class FtlInlineExpression
-    implements _FtlInlinePlaceableCandidate, _FtlArgumentCandidate {
-  final _FtlInlineExpressionCandidate expression;
-
-  FtlInlineExpression({required this.expression});
-}
-
-class _FtlPatternElementCandidate {}
-
-class FtlPatternElement {
-  final _FtlPatternElementCandidate element;
+final class FtlPatternElement {
+  final FtlPatternElementCandidate element;
 
   FtlPatternElement({required this.element});
 }
 
-class FtlPattern {
+final class FtlPattern {
   final List<FtlPatternElement> patternElements;
 
   FtlPattern({required this.patternElements});
 }
 
-class FtlSelectExpression implements _FtlInlinePlaceableCandidate {
+final class FtlSelectExpression implements FtlInlinePlaceableCandidate {
   FtlInlineExpression inlineExpression;
   FtlVariantList variantList;
 
-  FtlSelectExpression(
-      {required this.inlineExpression, required this.variantList});
+  FtlSelectExpression({
+    required this.inlineExpression,
+    required this.variantList,
+  });
 }
 
-class FtlArgumentList {
+final class FtlArgumentList {
   final List<FtlArgument> arguments;
 
   FtlArgumentList({required this.arguments});
 }
 
-class FtlCallArguments {
+final class FtlCallArguments {
   final FtlArgumentList arguments;
 
   FtlCallArguments({required this.arguments});
 }
 
-class FtlTermReference implements _FtlInlineExpressionCandidate {
+final class FtlTermReference implements FtlInlineExpressionCandidate {
   final FtlIdentifier identifier;
-  final FtlAttributeAccessor attributeAccessor;
+  final FtlAttributeAccessor? attributeAccessor;
+  final FtlCallArguments? callArguments;
+
+  FtlTermReference({
+    required this.identifier,
+    required this.attributeAccessor,
+    required this.callArguments,
+  });
+}
+
+final class FtlMessageReference implements FtlInlineExpressionCandidate {
+  final FtlIdentifier identifier;
+  final FtlAttributeAccessor? attributeAccessor;
+
+  FtlMessageReference({
+    required this.identifier,
+    required this.attributeAccessor,
+  });
+}
+
+final class FtlFunctionReference implements FtlInlineExpressionCandidate {
+  final FtlIdentifier identifier;
   final FtlCallArguments callArguments;
 
-  FtlTermReference(
-      {required this.identifier,
-      required this.attributeAccessor,
-      required this.callArguments});
+  FtlFunctionReference({
+    required this.identifier,
+    required this.callArguments,
+  });
 }
 
-class FtlMessageReference implements _FtlInlineExpressionCandidate {
-  final FtlIdentifier identifier;
-  final FtlAttributeAccessor attributeAccessor;
-
-  FtlMessageReference(
-      {required this.identifier, required this.attributeAccessor});
-}
-
-class FtlFunctionReference implements _FtlInlineExpressionCandidate {
-  final FtlIdentifier identifier;
-  final FtlCallArguments callArguments;
-
-  FtlFunctionReference({required this.identifier, required this.callArguments});
-}
-
-class FtlVariableReference implements _FtlInlineExpressionCandidate {
+final class FtlVariableReference implements FtlInlineExpressionCandidate {
   final FtlIdentifier identifier;
 
   FtlVariableReference({required this.identifier});
 }
 
-class FtlTerm {
+final class FtlTerm {
   final FtlIdentifier identifier;
   final FtlPattern pattern;
   final List<FtlAttribute> attributes;
 
-  FtlTerm(
-      {required this.identifier,
-      required this.pattern,
-      required this.attributes});
+  FtlTerm({
+    required this.identifier,
+    required this.pattern,
+    required this.attributes,
+  });
 }
 
-class FtlMessage {
+final class FtlMessage {
   final FtlIdentifier identifier;
   final FtlPattern? pattern;
   final List<FtlAttribute> attributes;
 
-  FtlMessage(
-      {required this.identifier, this.pattern, required this.attributes});
+  FtlMessage({
+    required this.identifier,
+    this.pattern,
+    required this.attributes,
+  });
 }
 
-class FtlEntry implements FtlResourceCandidate {
+final class FtlEntry implements FtlResourceCandidate {
   final FtlMessage? message;
   final FtlTerm? term;
   final FtlCommentLine? commentLine;
 
-  FtlEntry({this.message, this.term, this.commentLine});
+  FtlEntry({
+    this.message,
+    this.term,
+    this.commentLine,
+  });
 
   factory FtlEntry.forMessage(FtlMessage message) => FtlEntry(message: message);
   factory FtlEntry.forTerm(FtlTerm term) => FtlEntry(term: term);
@@ -227,9 +242,7 @@ class FtlEntry implements FtlResourceCandidate {
       FtlEntry(commentLine: commentLine);
 }
 
-class FtlResourceCandidate {}
-
-class FtlResource {
+final class FtlResource {
   final List<FtlResourceCandidate> resourceParts;
 
   FtlResource({required this.resourceParts});

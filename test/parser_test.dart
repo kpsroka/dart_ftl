@@ -16,7 +16,7 @@ import 'dart:io';
 import 'package:ftl/src/parser.dart';
 import 'package:test/test.dart';
 
-const List<String> _TEST_FILES = [
+const List<String> _testFiles = [
   'testdata/leading_dots.ftl',
   'testdata/reference_expressions.ftl',
   'testdata/term_parameters.ftl',
@@ -55,7 +55,7 @@ const List<String> _TEST_FILES = [
 ];
 
 void main() {
-  for (String testFile in _TEST_FILES) {
+  for (String testFile in _testFiles) {
     test('Testing parser with $testFile', () async {
       File ftlFile = File(testFile);
       expect(ftlFile.existsSync(), equals(true));
